@@ -1,0 +1,12 @@
+{
+  "name": "PilotBar - GitHub Copilot Monitor",
+  "description": "Monitor your GitHub Copilot quota and usage from the GNOME top bar.\n\nFeatures:\n* Real-time quota monitoring in top bar\n* OAuth authentication (no manual tokens needed)\n* Auto-refresh every 5 minutes\n* One-click access to GitHub usage page\n\nNote: This extension accesses the clipboard during OAuth authentication to copy the verification code for your convenience.",
+  "uuid": "pilotbar@perpuchaty.github.com",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48"
+  ],
+  "url": "https://github.com/perpuchaty/PilotBar"
+}
