@@ -1,6 +1,6 @@
 {
   "name": "PilotBar - GitHub Copilot Monitor",
-  "description": "Monitor your GitHub Copilot quota and usage from the GNOME top bar.\n\nFeatures:\n* Real-time quota monitoring in top bar\n* OAuth authentication (no manual tokens needed)\n* Auto-refresh every 5 minutes\n* One-click access to GitHub usage page\n\nNote: This extension accesses the clipboard during OAuth authentication to copy the verification code for your convenience.",
+  "description": "Monitor your GitHub Copilot quota and usage from the GNOME top bar.\n\nFeatures:\n* Real-time quota monitoring in top bar\n* OAuth authentication (no manual tokens needed)\n* Auto-refresh every 5 minutes\n* One-click access to GitHub usage page\n\nNote: This extension accesses the clipboard during OAuth authentication to copy the verification code for your convenience.\n\nThis extension is not affiliated, funded, or in any way associated with Microsoft and GitHub.",
   "uuid": "pilotbar@perpuchaty.github.com",
   "shell-version": [
     "45",
@@ -9,5 +9,8 @@
     "48",
     "49"
   ],
-  "url": "https://github.com/perpuchaty/PilotBar"
+  "url": "https://github.com/perpuchaty/PilotBar",
+  "donations": {
+    "github": "https://buymeacoffee.com/perpuchaty"
+  }
 }

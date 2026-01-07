@@ -244,7 +244,7 @@ class GitHubCopilotIndicator extends PanelMenu.Button {
             this._startAutoRefresh();
         } catch (e) {
             Main.notify('PilotBar', `Error saving token: ${e}`);
-            log(`PilotBar: Error saving token: ${e}`);
+            console.debug(`PilotBar: Error saving token: ${e}`);
         }
     }
     
@@ -384,13 +384,13 @@ class GitHubCopilotIndicator extends PanelMenu.Button {
                     
                 } else if (data.error) {
                     // Some other error
-                    log(`PilotBar: OAuth error - ${data.error}`);
+                    console.debug(`PilotBar: OAuth error - ${data.error}`);
                     Main.notify('PilotBar', 'OAuth failed: ' + data.error);
                     this._oauthDeviceCode = null;
                     this._oauthInterval = null;
                 }
             } catch (e) {
-                log(`PilotBar: OAuth polling error - ${e}`);
+                console.debug(`PilotBar: OAuth polling error - ${e}`);
                 // Try again on network errors
                 this._scheduleOAuthPoll();
             }
@@ -473,7 +473,7 @@ class GitHubCopilotIndicator extends PanelMenu.Button {
                 } catch (e) {
                     this._copilotStatusItem.label.text = 'Error checking status';
                     this._modelsItem.label.text = 'Check token permissions';
-                    log(`PilotBar: API error - ${e}`);
+                    console.debug(`PilotBar: API error - ${e}`);
                 }
             }
         );
@@ -533,7 +533,7 @@ class GitHubCopilotIndicator extends PanelMenu.Button {
             
             this._quotaData = data;
         } catch (e) {
-            log(`PilotBar: Parse error - ${e}`);
+            console.debug(`PilotBar: Parse error - ${e}`);
             this._copilotStatusItem.label.text = 'Error parsing quota';
         }
     }
@@ -765,7 +765,7 @@ class GitHubCopilotIndicator extends PanelMenu.Button {
         } catch (e) {
             this._quotaItem.label.text = 'Error parsing response';
             this._statusLabel.text = ' ❌';
-            log(`PilotBar: Parse error - ${e}`);
+            console.debug(`PilotBar: Parse error - ${e}`);
         }
     }
     
@@ -780,6 +780,11 @@ class GitHubCopilotIndicator extends PanelMenu.Button {
         // Clean up auto-refresh timeout to prevent memory leaks
         // This timeout is created in _startAutoRefresh() for periodic quota updates
         this._stopAutoRefresh();
+        
+        // Abort all pending HTTP requests
+        if (this._session) {
+            this._session.abort();
+        }
         
         super.destroy();
     }

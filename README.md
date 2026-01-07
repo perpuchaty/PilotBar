@@ -2,8 +2,6 @@
 
 A lightweight GNOME Shell extension that displays your GitHub Copilot quota directly in the top bar.
 
-![PilotBar Screenshot](screenshoot.png)
-
 ![PilotBar Preview](https://img.shields.io/badge/GNOME-Shell-4A86CF?style=flat&logo=gnome)
 ![Version](https://img.shields.io/badge/version-1.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
