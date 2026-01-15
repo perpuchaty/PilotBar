@@ -1,6 +1,9 @@
 # PilotBar - GitHub Copilot Monitor for GNOME
 
+
+
 A lightweight GNOME Shell extension that displays your GitHub Copilot quota directly in the top bar.
+![PilotBar Preview](https://github.com/perpuchaty/PilotBar/blob/main/screenshoot.png)
 
 ![PilotBar Preview](https://img.shields.io/badge/GNOME-Shell-4A86CF?style=flat&logo=gnome)
 ![Version](https://img.shields.io/badge/version-1.0-blue)
