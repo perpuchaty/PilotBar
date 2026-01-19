@@ -12,6 +12,6 @@
   "settings-schema": "org.gnome.shell.extensions.pilotbar",
   "url": "https://github.com/perpuchaty/PilotBar",
   "donations": {
-    "github": "https://buymeacoffee.com/perpuchaty"
+    "buymeacoffee": "perpuchaty"
   }
 }
