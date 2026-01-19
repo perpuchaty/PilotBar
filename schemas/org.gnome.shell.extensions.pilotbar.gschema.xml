@@ -1,0 +1,9 @@
+<schemalist>
+  <schema id="org.gnome.shell.extensions.pilotbar" path="/org/gnome/shell/extensions/pilotbar/">
+    <key name="display-format" type="s">
+      <default>'percentage'</default>
+      <summary>Display format in top bar</summary>
+      <description>Format for displaying budget in top bar: percentage, spent-budget, spent-only, requests</description>
+    </key>
+  </schema>
+</schemalist>

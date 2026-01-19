@@ -57,11 +57,17 @@ class DeviceCodeDialog extends ModalDialog.ModalDialog {
             label: '📋',
             style: 'font-size: 18pt; padding: 5px 10px;'
         });
+        this._copyButtonTimeout = null;
         copyButton.connect('clicked', () => {
             St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, userCode);
             copyButton.label = '✅';
-            GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 2, () => {
+            // Clear any existing timeout before creating new one
+            if (this._copyButtonTimeout) {
+                GLib.source_remove(this._copyButtonTimeout);
+            }
+            this._copyButtonTimeout = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 2, () => {
                 copyButton.label = '📋';
+                this._copyButtonTimeout = null;
                 return GLib.SOURCE_REMOVE;
             });
         });
@@ -106,6 +112,14 @@ class GitHubCopilotIndicator extends PanelMenu.Button {
         this._quotaData = null;
         this._session = new Soup.Session();
         this._refreshTimeout = null;
+        this._settings = extension.getSettings();
+        
+        // Listen for settings changes to refresh display
+        this._settingsChangedId = this._settings.connect('changed::display-format', () => {
+            if (this._quotaData) {
+                this._parseCopilotData(this._quotaData);
+            }
+        });
         
         // Create icon and label for the top bar
         let box = new St.BoxLayout({ style_class: 'panel-button' });
@@ -483,8 +497,9 @@ class GitHubCopilotIndicator extends PanelMenu.Button {
         try {
             let plan = data.copilot_plan || 'unknown';
             let snapshots = data.quota_snapshots || {};
+            let resetDate = data.quota_reset_date || '';
             
-            // Show plan type
+            // Show plan type and reset date
             if (plan === 'individual') {
                 this._copilotStatusItem.label.text = '✅ Copilot Pro Active';
             } else if (plan === 'business') {
@@ -497,20 +512,70 @@ class GitHubCopilotIndicator extends PanelMenu.Button {
             let premium = snapshots.premium_interactions;
             if (premium && !premium.unlimited) {
                 let remaining = premium.remaining || 0;
-                let total = premium.entitlement || 300;
-                let percent = premium.percent_remaining || 0;
+                let total = premium.entitlement || 300;  // From API
+                let used = total - remaining;
                 
-                this._modelsItem.label.text = `Premium: ${remaining}/${total} (${Math.round(percent)}%)`;
-                this._statusLabel.text = ` ${Math.round(percent)}%`;
+                // Calculate dollar values
+                // Fixed values - $20 budget is standard for Copilot Pro
+                // Price ~$0.04 per overage request (average across models)
+                let budgetDollars = 20.0;
+                let pricePerOverage = 0.04;
                 
-                // Change icon based on usage
-                if (percent > 50) {
-                    this._icon.text = '🤖';
-                } else if (percent > 20) {
+                // GitHub bills only for OVERAGE requests (used - entitlement)
+                // Included requests are free
+                let overageRequests = Math.max(0, used - total);
+                let spentDollars = overageRequests * pricePerOverage;
+                let remainingBudgetDollars = Math.max(0, budgetDollars - spentDollars);
+                let overBudgetDollars = Math.max(0, spentDollars - budgetDollars);
+                let percentUsed = budgetDollars > 0 ? (spentDollars / budgetDollars) * 100 : 0;
+                let percentRemainingBudget = Math.max(0, Math.min(100, 100 - percentUsed));
+                
+                // Get display format from settings
+                let displayFormat = this._settings.get_string('display-format');
+                
+                // Update menu item (always show full info)
+                if (overBudgetDollars > 0) {
+                    this._modelsItem.label.text = `Budget: $${spentDollars.toFixed(2)}/$${budgetDollars.toFixed(2)} ❌`;
+                    this._icon.text = '🔴';
+                } else if (percentRemainingBudget < 20) {
+                    this._modelsItem.label.text = `Budget: $${spentDollars.toFixed(2)}/$${budgetDollars.toFixed(2)} (${Math.round(percentRemainingBudget)}% left)`;
                     this._icon.text = '⚠️';
                 } else {
-                    this._icon.text = '🔴';
+                    this._modelsItem.label.text = `Budget: $${spentDollars.toFixed(2)}/$${budgetDollars.toFixed(2)} (${Math.round(percentRemainingBudget)}% left)`;
+                    this._icon.text = '🤖';
                 }
+                
+                // Update top bar based on display format
+                switch (displayFormat) {
+                    case 'spent-budget':
+                        this._statusLabel.text = ` $${spentDollars.toFixed(2)}/$${budgetDollars.toFixed(2)}`;
+                        break;
+                    case 'spent-only':
+                        this._statusLabel.text = ` $${spentDollars.toFixed(2)}`;
+                        break;
+                    case 'requests':
+                        this._statusLabel.text = ` ${used}/${total}`;
+                        break;
+                    case 'percentage':
+                    default:
+                        this._statusLabel.text = ` ${Math.round(percentRemainingBudget)}%`;
+                        break;
+                }
+                
+                // Add reset date info to menu if available
+                if (resetDate) {
+                    // Show when budget resets
+                    let resetInfo = `Resets: ${resetDate}`;
+                    if (!this._resetInfoItem) {
+                        this._resetInfoItem = new PopupMenu.PopupMenuItem(resetInfo);
+                        this._resetInfoItem.reactive = false;
+                        // Insert after models item
+                        this.menu.addMenuItem(this._resetInfoItem, 3);
+                    } else {
+                        this._resetInfoItem.label.text = resetInfo;
+                    }
+                }
+                
             } else if (premium && premium.unlimited) {
                 this._modelsItem.label.text = 'Premium: Unlimited ∞';
                 this._statusLabel.text = ' ∞';
@@ -770,20 +835,25 @@ class GitHubCopilotIndicator extends PanelMenu.Button {
     }
     
     destroy() {
+        // Disconnect settings signal
+        if (this._settingsChangedId) {
+            this._settings.disconnect(this._settingsChangedId);
+            this._settingsChangedId = null;
+        }
+        
         // Clean up OAuth polling timeout to prevent memory leaks
-        // This timeout is created in _scheduleOAuthPoll() for device code flow authentication
         if (this._pollingTimeout) {
             GLib.source_remove(this._pollingTimeout);
             this._pollingTimeout = null;
         }
         
         // Clean up auto-refresh timeout to prevent memory leaks
-        // This timeout is created in _startAutoRefresh() for periodic quota updates
         this._stopAutoRefresh();
         
-        // Abort all pending HTTP requests
+        // Abort all pending HTTP requests to prevent callbacks after destroy
         if (this._session) {
             this._session.abort();
+            this._session = null;
         }
         
         super.destroy();
